@@ -4,12 +4,11 @@ import React, { useState, useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import axios from 'axios';
 import 'leaflet/dist/leaflet.css';
-import { Select } from 'antd';  
+import { Select } from 'antd';
 
 import iconURL from 'leaflet/dist/images/marker-icon.png';
 import selectedIconUrl from '@/images/_.jpeg';
 import iconShadowURL from 'leaflet/dist/images/marker-shadow.png';
-
 import L from 'leaflet';
 
 type Retailer = {
@@ -43,16 +42,12 @@ const selectedIcon = new L.Icon({
 
 const BASE_URL = 'http://localhost:3001/api/map';
 
-function SetViewOnSelectedRetailer({ selectedRetailer }: {
-  selectedRetailer: Retailer
-}) {
+function SetViewOnSelectedRetailer({ selectedRetailer }: { selectedRetailer: Retailer }) {
   const map = useMap();
 
   useEffect(() => {
     if (selectedRetailer?.address?.lat && selectedRetailer?.address?.long) {
       map.setView([selectedRetailer.address.lat, selectedRetailer.address.long], 12);
-      map.panTo([selectedRetailer.address.lat, selectedRetailer.address.long]);
-
       const marker = L.marker([selectedRetailer.address.lat, selectedRetailer.address.long], { icon: selectedIcon }).addTo(map);
       marker.bindPopup(`Retailer: ${selectedRetailer.name}`).openPopup();
     }
@@ -69,8 +64,8 @@ export default function Home() {
 
   useEffect(() => {
     axios.get(`${BASE_URL}/retailers/all`).then(response => {
-      setRetailers(response.data?.data);
-      setFilteredRetailers(response.data?.data);  
+      setRetailers(response.data?.data || []);
+      setFilteredRetailers(response.data?.data || []);
     });
   }, []);
 
@@ -82,7 +77,7 @@ export default function Home() {
         )
       );
     } else {
-      setFilteredRetailers(retailers);  
+      setFilteredRetailers(retailers);
     }
   }, [searchTerm, retailers]);
 
@@ -92,7 +87,6 @@ export default function Home() {
         <Select
           showSearch={true}
           onSearch={value => setSearchTerm(value)}
-          
           placeholder="Select Retailer"
           style={{ flex: 1, marginRight: '10px' }}
           value={selectedRetailer?.name}
@@ -106,7 +100,7 @@ export default function Home() {
         </Select>
       </div>
 
-      <MapContainer className='m-6'  center={[28.7041, 77.1025]}  zoom={5} style={{ flex: 1 }}>
+      <MapContainer className='m-6' center={[28.7041, 77.1025]} zoom={5} style={{ flex: 1 }}>
         <TileLayer
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -115,10 +109,13 @@ export default function Home() {
         {filteredRetailers.map(retailer => (
           <Marker
             key={retailer._id}
-            position={[retailer?.address?.lat, retailer?.address?.long]}
+            position={[retailer.address.lat, retailer.address.long]}
             icon={selectedRetailer?._id === retailer._id ? selectedIcon : defaultIcon}
           >
-            <Popup>Retailer: {retailer.name}<br />Time: {new Date(retailer?.time).toLocaleString()}</Popup>
+            <Popup>
+              Retailer: {retailer.name}<br />
+              Time: {new Date(retailer?.time).toLocaleString()}
+            </Popup>
           </Marker>
         ))}
 
