@@ -1,101 +1,130 @@
-import Image from "next/image";
+'use client'
+
+import React, { useState, useEffect } from 'react';
+import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import axios from 'axios';
+import 'leaflet/dist/leaflet.css';
+import { Input, Select } from 'antd'; // Import Input from Ant Design
+
+import iconURL from 'leaflet/dist/images/marker-icon.png';
+import selectedIconUrl from '@/images/_.jpeg';
+import iconShadowURL from 'leaflet/dist/images/marker-shadow.png';
+
+import L from 'leaflet';
+
+type Retailer = {
+  _id: string,
+  name: string,
+  address: {
+    lat: number,
+    long: number
+  },
+  time: string
+}
+
+const defaultIcon = new L.Icon({
+  iconUrl: iconURL.src,
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowUrl: iconShadowURL.src,
+  shadowSize: [41, 41],
+});
+
+const selectedIcon = new L.Icon({
+  iconUrl: selectedIconUrl.src,
+  iconSize: [30, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowUrl: iconShadowURL.src,
+  shadowSize: [41, 41],
+  className: 'leaflet-selected-icon',
+});
+
+const BASE_URL = 'http://localhost:3001/api/map';
+
+function SetViewOnSelectedRetailer({ selectedRetailer }: {
+  selectedRetailer: Retailer
+}) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (selectedRetailer?.address?.lat && selectedRetailer?.address?.long) {
+      map.setView([selectedRetailer.address.lat, selectedRetailer.address.long], 12);
+      map.panTo([selectedRetailer.address.lat, selectedRetailer.address.long]);
+
+      const marker = L.marker([selectedRetailer.address.lat, selectedRetailer.address.long], { icon: selectedIcon }).addTo(map);
+      marker.bindPopup(`Retailer: ${selectedRetailer.name}`).openPopup();
+    }
+  }, [selectedRetailer, map]);
+
+  return null;
+}
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="https://nextjs.org/icons/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+  const [retailers, setRetailers] = useState<Retailer[]>([]);
+  const [filteredRetailers, setFilteredRetailers] = useState<Retailer[]>([]);
+  const [selectedRetailer, setSelectedRetailer] = useState<Retailer>({} as Retailer);
+  const [searchTerm, setSearchTerm] = useState<string>('');
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+  useEffect(() => {
+    axios.get(`${BASE_URL}/retailers/all`).then(response => {
+      setRetailers(response.data?.data);
+      setFilteredRetailers(response.data?.data); // Initialize filteredRetailers
+    });
+  }, []);
+
+  useEffect(() => {
+    if (searchTerm) {
+      setFilteredRetailers(
+        retailers.filter(retailer =>
+          retailer.name.toLowerCase().includes(searchTerm.toLowerCase())
+        )
+      );
+    } else {
+      setFilteredRetailers(retailers); // Reset to all retailers if no search term
+    }
+  }, [searchTerm, retailers]);
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
+      <div style={{ display: 'flex', flexDirection: 'row', padding: '10px' }}>
+        <Select
+          showSearch={true}
+          onSearch={value => setSearchTerm(value)}
+          
+          placeholder="Select Retailer"
+          style={{ flex: 1, marginRight: '10px' }}
+          value={selectedRetailer?.name}
+          onChange={value => setSelectedRetailer(retailers.find(retailer => retailer.name === value) || {} as Retailer)}
+        >
+          {filteredRetailers.map(retailer => (
+            <Select.Option key={retailer._id} value={retailer.name}>
+              {retailer.name}
+            </Select.Option>
+          ))}
+        </Select>
+      </div>
+
+      <MapContainer className='m-6' center={[50, 60]} zoom={5} style={{ flex: 1 }}>
+        <TileLayer
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        />
+
+        {/* Plot retailers */}
+        {filteredRetailers.map(retailer => (
+          <Marker
+            key={retailer._id}
+            position={[retailer?.address?.lat, retailer?.address?.long]}
+            icon={selectedRetailer?._id === retailer._id ? selectedIcon : defaultIcon}
           >
-            <Image
-              className="dark:invert"
-              src="https://nextjs.org/icons/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+            <Popup>Retailer: {retailer.name}<br />Time: {new Date(retailer?.time).toLocaleString()}</Popup>
+          </Marker>
+        ))}
+
+        <SetViewOnSelectedRetailer selectedRetailer={selectedRetailer} />
+      </MapContainer>
     </div>
   );
 }
