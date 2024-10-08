@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import axios from 'axios';
 import 'leaflet/dist/leaflet.css';
-import { Input, Select } from 'antd'; // Import Input from Ant Design
+import { Select } from 'antd';  
 
 import iconURL from 'leaflet/dist/images/marker-icon.png';
 import selectedIconUrl from '@/images/_.jpeg';
@@ -70,7 +70,7 @@ export default function Home() {
   useEffect(() => {
     axios.get(`${BASE_URL}/retailers/all`).then(response => {
       setRetailers(response.data?.data);
-      setFilteredRetailers(response.data?.data); // Initialize filteredRetailers
+      setFilteredRetailers(response.data?.data);  
     });
   }, []);
 
@@ -82,7 +82,7 @@ export default function Home() {
         )
       );
     } else {
-      setFilteredRetailers(retailers); // Reset to all retailers if no search term
+      setFilteredRetailers(retailers);  
     }
   }, [searchTerm, retailers]);
 
@@ -106,13 +106,12 @@ export default function Home() {
         </Select>
       </div>
 
-      <MapContainer className='m-6' center={[50, 60]} zoom={5} style={{ flex: 1 }}>
+      <MapContainer className='m-6'  center={[28.7041, 77.1025]}  zoom={5} style={{ flex: 1 }}>
         <TileLayer
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         />
 
-        {/* Plot retailers */}
         {filteredRetailers.map(retailer => (
           <Marker
             key={retailer._id}
